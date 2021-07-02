@@ -34,14 +34,14 @@ menu "TFT Configuration"
 	config WIDTH
 		int "SCREEN WIDTH"
 		range 0 999
-		default 320
+		default 240
 		help
 			The width resolution of the screen.
 
 	config HEIGHT
 		int "SCREEN HEIGHT"
 		range 0 999
-		default 240
+		default 320
 		help
 			The height resolution of the screen.
 

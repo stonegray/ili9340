@@ -1,25 +1,20 @@
 # esp-idf-ili9340
-SPI TFT Driver for esp-idf
+SPI TFT Driver for esp-idf. This fork works as a standalone ESP-IDF component, to be integrated into other projects.
 
-# Installation for ESP32
-
-```
-git clone https://github.com/nopnop2002/esp-idf-ili9340
-cd esp-idf-ili9340/
-idf.py set-target esp32
-idf.py menuconfig
-idf.py flash
-```
-
-# Installation for ESP32-S2
+# ESP-IDF Component Considerations
 
 ```
-git clone https://github.com/nopnop2002/esp-idf-ili9340
-cd esp-idf-ili9340/
-idf.py set-target esp32s2
-idf.py menuconfig
-idf.py flash
+git submodule add https://github.com/JarrettR/esp-idf-ili9340.git components/ili9340
+git submodule init
+cp components/ili9340/partitions.csv partitions.csv
 ```
+
+With menuconfig, you'll have to set the partitions table to point to this new csv.
+
+
+# Usage
+
+The original `main.c` file works with no modifications.
 
 # ESP32-S2 Limitation   
 - tjpgd library does not exist in ESP32-S2 ROM.   
