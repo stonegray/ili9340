@@ -295,10 +295,10 @@ void lcdInit(TFT_t * dev, uint16_t model, int width, int height, int offsetx, in
 		spi_master_write_comm_byte(dev, 0xC7);	//VCOM Control 2
 		spi_master_write_data_byte(dev, 0x86);
 
-		spi_master_write_comm_byte(dev, 0x36);	//Memory Access Control
+		spi_master_write_comm_byte(dev, 0x36);	//Memory Access Control 0x36
 		//spi_master_write_data_byte(dev, 0x08);	//Right top start, BGR color filter panel
 		//spi_master_write_data_byte(dev, 0x00);//Right top start, RGB color filter panel
-		spi_master_write_data_byte(dev, 0xC0); // Temporary fix for backwards display bug
+		spi_master_write_data_byte(dev, 0b00100000); // Temporary fix for backwards display bug
 
 		spi_master_write_comm_byte(dev, 0x3A);	//Pixel Format Set
 		spi_master_write_data_byte(dev, 0x55);	//65K color: 16-bit/pixel
