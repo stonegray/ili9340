@@ -1,14 +1,13 @@
 
 set(COMPONENT_SRCS
-    driver/decode_image.c
-    driver/fontx.c
-    driver/ili9340.c
-    driver/pngle.c
+    decode_image.c
+    fontx.c
+    ili9340.c
+    pngle.c
 )
 
-set(COMPONENT_ADD_INCLUDEDIRS
-    driver/include
-)
-register_component()
+set(COMPONENT_ADD_INCLUDEDIRS . )
+
+register_component(REQUIRES driver)
     
 #spiffs_create_partition_image(storage font FLASH_IN_PROJECT)
