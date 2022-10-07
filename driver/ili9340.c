@@ -4,11 +4,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include <driver/spi_master.h>
-#include <driver/gpio.h>
+#include "driver/spi_master.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 
-#include "ili9340.h"
+#include "include/ili9340.h"
 
 #define TAG "ILI9340"
 #define	_DEBUG_ 0
@@ -26,11 +26,10 @@
 
 static const int SPI_Command_Mode = 0;
 static const int SPI_Data_Mode = 1;
-//static const int SPI_Frequency = SPI_MASTER_FREQ_20M;
+// static const int SPI_Frequency = (SPI_MASTER_FREQ_20M / 2);
 ////static const int SPI_Frequency = SPI_MASTER_FREQ_26M;
 static const int SPI_Frequency = SPI_MASTER_FREQ_40M;
-////static const int SPI_Frequency = SPI_MASTER_FREQ_80M;
-
+// static const int SPI_Frequency = SPI_MASTER_FREQ_80M;
 
 void spi_master_init(TFT_t * dev, int16_t GPIO_MOSI, int16_t GPIO_SCLK, int16_t GPIO_CS, int16_t GPIO_DC, int16_t GPIO_RESET, int16_t GPIO_BL)
 {
@@ -97,7 +96,8 @@ bool spi_master_write_byte(spi_device_handle_t SPIHandle, const uint8_t* Data, s
 	esp_err_t ret;
 
 	if ( DataLength > 0 ) {
-		memset( &SPITransaction, 0, sizeof( spi_transaction_t ) );
+		spi_device_acquire_bus(SPIHandle, portMAX_DELAY);
+		memset(&SPITransaction, 0, sizeof(spi_transaction_t));
 		SPITransaction.length = DataLength * 8;
 		SPITransaction.tx_buffer = Data;
 #if 1
@@ -106,7 +106,8 @@ bool spi_master_write_byte(spi_device_handle_t SPIHandle, const uint8_t* Data, s
 #if 0
 		ret = spi_device_polling_transmit( SPIHandle, &SPITransaction );
 #endif
-		assert(ret==ESP_OK); 
+		spi_device_release_bus(SPIHandle);
+		assert(ret == ESP_OK);
 	}
 
 	return true;
@@ -125,6 +126,7 @@ bool spi_master_write_comm_word(TFT_t * dev, uint16_t cmd)
 	static uint8_t Byte[2];
 	Byte[0] = (cmd >> 8) & 0xFF;
 	Byte[1] = cmd & 0xFF;
+	lcdCheckDigit += cmd;
 	gpio_set_level( dev->_dc, SPI_Command_Mode );
 	return spi_master_write_byte( dev->_SPIHandle, Byte, 2 );
 }
@@ -135,6 +137,7 @@ bool spi_master_write_data_byte(TFT_t * dev, uint8_t data)
 	static uint8_t Byte = 0;
 	Byte = data;
 	gpio_set_level( dev->_dc, SPI_Data_Mode );
+	lcdCheckDigit += data;
 	return spi_master_write_byte( dev->_SPIHandle, &Byte, 1 );
 }
 
@@ -145,7 +148,8 @@ bool spi_master_write_data_word(TFT_t * dev, uint16_t data)
 	Byte[0] = (data >> 8) & 0xFF;
 	Byte[1] = data & 0xFF;
 	gpio_set_level( dev->_dc, SPI_Data_Mode );
-	return spi_master_write_byte( dev->_SPIHandle, Byte, 2);
+	lcdCheckDigit += data;
+	return spi_master_write_byte(dev->_SPIHandle, Byte, 2);
 }
 
 bool spi_master_write_addr(TFT_t * dev, uint16_t addr1, uint16_t addr2)
@@ -156,6 +160,7 @@ bool spi_master_write_addr(TFT_t * dev, uint16_t addr1, uint16_t addr2)
 	Byte[2] = (addr2 >> 8) & 0xFF;
 	Byte[3] = addr2 & 0xFF;
 	gpio_set_level( dev->_dc, SPI_Data_Mode );
+	lcdCheckDigit += addr1 + addr2;
 	return spi_master_write_byte( dev->_SPIHandle, Byte, 4);
 }
 
@@ -480,6 +485,7 @@ void lcdInit(TFT_t * dev, uint16_t model, int width, int height, int offsetx, in
 // x:X coordinate
 // y:Y coordinate
 // color:color
+
 void lcdDrawPixel(TFT_t * dev, uint16_t x, uint16_t y, uint16_t color){
 	if (x >= dev->_width) return;
 	if (y >= dev->_height) return;
@@ -1457,3 +1463,39 @@ void lcdScroll(TFT_t * dev, uint16_t vsp){
 	} // endif 0x9225/0x9226
 }
 
+void lcdDrawBuffer(TFT_t *dev, uint8_t bufIndex)
+{
+
+	// Set writable zone to the current size + 1 vertical page:
+
+	spi_master_write_comm_byte(dev, 0x12); // set Page(y) address
+
+	if (bufIndex)
+	{
+		spi_master_write_comm_byte(dev, 0x30); // set Page(y) address
+		spi_master_write_addr(dev, 0, 80);
+	}
+	else
+	{
+		spi_master_write_comm_byte(dev, 0x30); // set Page(y) address
+		// spi_master_write_addr(dev, dev->_offsety + 80, dev->_offsety + 80 + 80);
+		spi_master_write_addr(dev, 80, 160);
+
+		// spi_master_write_addr(dev, dev->_offsety, dev->_offsety + 80);
+	}
+	ESP_LOGI(TAG, "Setting WOY %u", bufIndex);
+
+	/*
+		uint16_t _y1 = dev->_offsety + (CONFIG_HEIGHT * bufIndex);
+		uint16_t _y2 = _y1 + CONFIG_HEIGHT;
+
+		spi_master_write_comm_byte(dev, 0x2B); // set Page(y) address
+		*/
+}
+void lcdShowBuffer(TFT_t *dev, uint8_t bufindex)
+{
+	spi_master_write_comm_byte(dev, 0x30); // set display address vert
+	spi_master_write_addr(dev, 104, 104 + CONFIG_HEIGHT);
+	spi_master_write_comm_byte(dev, 0x33); // set display address vert
+	spi_master_write_addr(dev, 104, 104 + CONFIG_HEIGHT);
+}

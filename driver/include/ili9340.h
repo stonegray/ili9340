@@ -33,8 +33,12 @@ typedef struct {
 	uint16_t _font_underline_color;
 	int16_t _dc;
 	int16_t _bl;
+	uint16_t _writeoffsety;
+	uint16_t _readoffsety;
 	spi_device_handle_t _SPIHandle;
 } TFT_t;
+
+uint64_t lcdCheckDigit;
 
 void spi_master_init(TFT_t * dev, int16_t GPIO_MOSI, int16_t GPIO_SCLK, int16_t GPIO_CS, int16_t GPIO_DC, int16_t GPIO_RESET, int16_t GPIO_BL);
 bool spi_master_write_byte(spi_device_handle_t SPIHandle, const uint8_t* Data, size_t DataLength);
@@ -84,5 +88,10 @@ void lcdBacklightOn(TFT_t * dev);
 void lcdSetScrollArea(TFT_t * dev, uint16_t tfa, uint16_t vsa, uint16_t bfa);
 void lcdResetScrollArea(TFT_t * dev, uint16_t vsa);
 void lcdScroll(TFT_t * dev, uint16_t vsp);
+
+/* Experimental double-buffering */
+void lcdDrawBuffer(TFT_t *dev, uint8_t bufindex);
+void lcdShowBuffer(TFT_t *dev, uint8_t bufindex);
+
 #endif /* MAIN_ILI9340_H_ */
 
